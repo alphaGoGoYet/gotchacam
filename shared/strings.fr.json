@@ -1,0 +1,90 @@
+{
+  "_comment": "Tous les messages Telegram en français. Placeholders au format {nom}. Utilisé par Python (str.format) et Kotlin (équivalent). Si tu modifies un message ici, les deux implémentations le prennent au prochain build/restart.",
+
+  "service": {
+    "started": "🎥 cam started",
+    "stopped": "🛑 cam stopped"
+  },
+
+  "alarm": {
+    "default_text": "Alerte. Intrusion détectée. Cette zone est sous vidéo-surveillance haute définition. Vos images viennent d'être transmises à la police et au propriétaire. Le propriétaire arrive sur les lieux dans quelques minutes. Quittez immédiatement les lieux.",
+    "started": "🚨 ALARME en boucle ({source}) — volume max\nEnvoie /stopalarm pour arrêter.",
+    "already_running": "🚨 alarme déjà en cours — /stopalarm pour arrêter",
+    "stopped_with_volume": "🔇 alarme arrêtée — volume restauré ({volume}%)",
+    "stopped_no_volume": "🔇 alarme arrêtée",
+    "no_alarm_running": "aucune alarme en cours",
+    "source_recording": "🔊 enregistrement",
+    "source_tts": "🗣️ voix de synthèse",
+    "executable_missing": "⚠️ commande introuvable : {error}",
+    "tts_unavailable": "⚠️ commande `say` indisponible sur cette machine"
+  },
+
+  "record_alarm": {
+    "prompt": "🎙️ Envoie-moi un message vocal dans les 5 minutes — il remplacera l'alarme actuelle.\nLimite : {max} secondes max.{pitch_note}",
+    "pitch_note": " (pitch sera appliqué : {pitch_pct})",
+    "replaced": "✓ alarme remplacée{pitch_note} — fichier : `{filename}`\nTape /alarm pour la tester.",
+    "replaced_pitch_note": " (pitch {pitch_pct})",
+    "ffmpeg_missing": "❌ ffmpeg introuvable ({path}). Vérifie FFMPEG_BIN dans .env.",
+    "conversion_failed": "❌ conversion ffmpeg échouée — voir cam.err"
+  },
+
+  "voice": {
+    "diffused": "🔊 message diffusé",
+    "diffusion_failed": "❌ afplay a échoué (code {code})",
+    "audio_conversion_failed": "❌ conversion audio échouée — voir cam.err",
+    "too_long": "⚠️ message trop long ({duration}s) — max {max}s"
+  },
+
+  "pause": {
+    "paused": "⏸️ détection en pause",
+    "resumed": "▶️ détection reprise"
+  },
+
+  "status": {
+    "label": "État : {state}",
+    "active": "▶️ actif",
+    "paused": "⏸️ en pause (caméra éteinte)"
+  },
+
+  "snapshot": {
+    "caption": "📸 snapshot — {time}",
+    "not_ready": "⏳ caméra pas encore prête, réessaie dans une seconde",
+    "paused": "⏸️ caméra arrêtée pendant la pause — /resume avant de prendre une photo",
+    "send_failed": "❌ envoi échoué : {error}"
+  },
+
+  "motion": {
+    "caption": "Mouvement détecté — {time} (area={area}, {count} photos sur {span}s)"
+  },
+
+  "site_prefix": "📍 {site} — ",
+
+  "sensitivity": {
+    "current": "Sensibilité actuelle : MIN_AREA = {value} pixels.\nUsage : `/sensitivity <nombre>` pour changer (plus haut = moins sensible, ignore les petits mouvements).",
+    "updated": "✓ MIN_AREA = {value} pixels (était {previous})",
+    "invalid": "❌ valeur invalide. Attendu : un entier positif. Reçu : `{input}`"
+  },
+
+  "history": {
+    "empty": "📜 aucune détection enregistrée",
+    "header": "📜 Détections récentes ({count}) :",
+    "item": "• {timestamp}"
+  },
+
+  "help": {
+    "header": "Commandes disponibles :",
+    "commands": [
+      "/pause — mettre la détection en pause",
+      "/resume — reprendre la détection",
+      "/status — afficher l'état actuel",
+      "/snapshot — envoyer une photo immédiate",
+      "/alarm — déclenche l'alarme dissuasive en boucle (volume max)",
+      "/stopalarm — arrête l'alarme en cours",
+      "/recordalarm — enregistrer un message vocal qui remplacera l'alarme",
+      "/sensitivity [valeur] — afficher ou changer le seuil de détection (MIN_AREA)",
+      "/history [N] — lister les N dernières détections (défaut 5, max 20)",
+      "/help — afficher cette aide"
+    ],
+    "footer": "Envoie un message vocal pour qu'il soit diffusé une fois sur les haut-parleurs."
+  }
+}

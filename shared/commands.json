@@ -1,0 +1,68 @@
+{
+  "_comment": "Définition des commandes Telegram du bot. Chaque implémentation (Python, Kotlin) doit enregistrer ces commandes et respecter les comportements décrits dans BEHAVIOR_SPEC.md.",
+
+  "commands": [
+    {
+      "name": "pause",
+      "description": "Mettre la détection en pause (libère la caméra, LED s'éteint)",
+      "spec_section": "4.1"
+    },
+    {
+      "name": "resume",
+      "description": "Reprendre la détection après une pause",
+      "spec_section": "4.2"
+    },
+    {
+      "name": "status",
+      "description": "Afficher l'état actuel (actif / en pause)",
+      "spec_section": "4.3"
+    },
+    {
+      "name": "snapshot",
+      "description": "Envoyer une photo immédiate (refusé pendant la pause)",
+      "spec_section": "4.4"
+    },
+    {
+      "name": "alarm",
+      "description": "Déclencher l'alarme dissuasive en boucle au volume maximum",
+      "spec_section": "4.5"
+    },
+    {
+      "name": "stopalarm",
+      "description": "Arrêter l'alarme en cours et restaurer le volume initial",
+      "spec_section": "4.6"
+    },
+    {
+      "name": "recordalarm",
+      "description": "Ouvrir une fenêtre de 5 min pour remplacer l'alarme par un nouveau message vocal",
+      "spec_section": "4.7"
+    },
+    {
+      "name": "sensitivity",
+      "description": "Afficher ou modifier MIN_AREA à chaud sans redémarrer le service",
+      "args": "[valeur entière en pixels]",
+      "spec_section": "4.9"
+    },
+    {
+      "name": "history",
+      "description": "Lister les timestamps des N dernières détections (défaut 5, max 20)",
+      "args": "[N]",
+      "spec_section": "4.10"
+    },
+    {
+      "name": "help",
+      "description": "Afficher la liste des commandes",
+      "spec_section": "4.8"
+    },
+    {
+      "name": "start",
+      "description": "Alias de /help (commande de bienvenue Telegram)",
+      "spec_section": "4.8"
+    }
+  ],
+
+  "voice_handler": {
+    "description": "Tout message vocal ou fichier audio reçu est diffusé une fois sur les haut-parleurs. Pendant les 5 minutes suivant /recordalarm, il remplace en plus l'alarme stockée.",
+    "spec_section": "5"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "_comment": "Source de vérité des constantes du projet cam. Lu par les implémentations Python (macOS) et Kotlin (Android) au build ou au runtime. Ne pas dupliquer ces valeurs ailleurs.",
+  "camera": {
+    "index": 0,
+    "warmupSeconds": 3.0
+  },
+  "motion": {
+    "threshold": 25,
+    "minArea": 5000,
+    "cooldownSeconds": 3.0
+  },
+  "burst": {
+    "count": 3,
+    "intervalSeconds": 1.0
+  },
+  "alarm": {
+    "pitch": 1.0,
+    "recordMaxSeconds": 30,
+    "voicePlaybackMaxSeconds": 60,
+    "voice": "Thomas"
+  },
+  "captures": {
+    "retentionDays": 30
+  }
+}
