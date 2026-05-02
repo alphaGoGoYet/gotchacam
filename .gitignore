@@ -11,5 +11,11 @@ captures/
 alarm.m4a
 SESSION_NOTES.md
 
+# Plans internes (stratégie produit, monétisation, ports futurs) — non publics
+ANDROID_PORT.md
+WINDOWS_PORT.md
+PACKAGING.md
+DEPLOYMENT.md
+
 # Pytest cache
 .pytest_cache/
