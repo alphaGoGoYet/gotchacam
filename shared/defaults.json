@@ -1,5 +1,6 @@
 {
-  "_comment": "Source de vérité des constantes du projet cam. Lu par les implémentations Python (macOS) et Kotlin (Android) au build ou au runtime. Ne pas dupliquer ces valeurs ailleurs.",
+  "_comment": "Source of truth for gotchacam constants. Consumed by Python (macOS) at runtime and by future Kotlin (Android) implementation at build time. Do not duplicate these values elsewhere.",
+  "language": "en",
   "camera": {
     "index": 0,
     "warmupSeconds": 3.0
@@ -17,7 +18,10 @@
     "pitch": 1.0,
     "recordMaxSeconds": 30,
     "voicePlaybackMaxSeconds": 60,
-    "voice": "Thomas"
+    "voicesByLanguage": {
+      "en": "Daniel",
+      "fr": "Thomas"
+    }
   },
   "captures": {
     "retentionDays": 30

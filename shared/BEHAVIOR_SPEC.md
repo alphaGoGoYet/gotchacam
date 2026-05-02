@@ -234,10 +234,11 @@ Le timestamp inclut les millisecondes pour éviter les collisions de noms quand 
 |--------------|--------|-------------|
 | `TELEGRAM_BOT_TOKEN` | (requis) | Token du bot |
 | `TELEGRAM_CHAT_ID` | (requis) | chat_id de l'utilisateur unique autorisé |
+| `LANGUAGE` | `defaults.json/language` (`en`) | Langue des messages Telegram. Détermine quel `strings.<lang>.json` charger. Fallback sur `en` si la langue demandée n'existe pas |
 | `SITE_NAME` | `""` | Préfixe ajouté à tous les messages, ex `maison` → `📍 maison — ` |
 | `ALARM_SOUND` | `""` | Chemin du fichier audio. Si vide, défaut = `alarm.m4a` à côté du script |
-| `ALARM_TEXT` | strings.fr.json/`alarm.default_text` | Texte TTS de fallback |
-| `ALARM_VOICE` | `defaults.json/alarm.voice` | Nom de la voix TTS |
+| `ALARM_TEXT` | `strings.<lang>.json/alarm.default_text` | Texte TTS de fallback |
+| `ALARM_VOICE` | `defaults.json/alarm.voicesByLanguage[LANGUAGE]` | Nom de la voix TTS (varie selon la langue : Daniel en `en`, Thomas en `fr`) |
 | `ALARM_PITCH` | `defaults.json/alarm.pitch` | Multiplicateur de pitch sur enregistrements |
 | `FFMPEG_BIN` | `"ffmpeg"` | Chemin du binaire ffmpeg (utile si pas dans le PATH du service) |
 | `CAMERA_INDEX` | `defaults.json/camera.index` | Index OpenCV de la caméra |

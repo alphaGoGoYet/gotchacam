@@ -41,7 +41,11 @@ load_dotenv()
 
 SHARED_DIR = Path(__file__).parent / "shared"
 DEFAULTS = json.loads((SHARED_DIR / "defaults.json").read_text())
-STRINGS = json.loads((SHARED_DIR / "strings.fr.json").read_text())
+LANGUAGE = os.getenv("LANGUAGE", DEFAULTS.get("language", "en")).strip().lower()
+_strings_path = SHARED_DIR / f"strings.{LANGUAGE}.json"
+if not _strings_path.exists():
+    _strings_path = SHARED_DIR / "strings.en.json"
+STRINGS = json.loads(_strings_path.read_text())
 
 BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 CHAT_ID = int(os.environ["TELEGRAM_CHAT_ID"])
@@ -56,7 +60,8 @@ SITE_NAME = os.getenv("SITE_NAME", "").strip()
 SITE_PREFIX = STRINGS["site_prefix"].format(site=SITE_NAME) if SITE_NAME else ""
 ALARM_TEXT = os.getenv("ALARM_TEXT", STRINGS["alarm"]["default_text"])
 ALARM_SOUND = os.getenv("ALARM_SOUND", "").strip()
-ALARM_VOICE = os.getenv("ALARM_VOICE", DEFAULTS["alarm"]["voice"]).strip()
+_default_voice = DEFAULTS["alarm"].get("voicesByLanguage", {}).get(LANGUAGE, "Daniel")
+ALARM_VOICE = os.getenv("ALARM_VOICE", _default_voice).strip()
 ALARM_PITCH = float(os.getenv("ALARM_PITCH", DEFAULTS["alarm"]["pitch"]))
 ALARM_RECORD_MAX_SECONDS = int(os.getenv("ALARM_RECORD_MAX_SECONDS", DEFAULTS["alarm"]["recordMaxSeconds"]))
 FFMPEG_BIN = os.getenv("FFMPEG_BIN", "ffmpeg")

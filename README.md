@@ -1,174 +1,177 @@
-
 # gotchacam
 
-> *Caméra de surveillance maison auto-hébergée — tes images restent chez toi, et un intrus se fait fracasser par ta propre voix en boucle.*
+> *Self-hosted home surveillance — your footage stays at home, and an intruder gets blasted by your own voice on loop.*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Made for macOS](https://img.shields.io/badge/macOS-Apple%20Silicon-lightgrey)](#prerequisites)
-[![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue)](#prerequisites)
+[![Made for macOS](https://img.shields.io/badge/macOS-Apple%20Silicon-lightgrey)](#requirements)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue)](#requirements)
 
-<!-- Placeholder pour GIF démo -->
+🇫🇷 [Version française disponible](README.fr.md)
+
+<!-- Demo GIF placeholder -->
 <!-- ![demo](docs/demo.gif) -->
 
 ---
 
-## Pourquoi gotchacam est différent
+## Why gotchacam is different
 
-🔒 **100% chez toi** — tes images ne transitent jamais par un cloud propriétaire. Tout vit sur ton Mac à la maison + Telegram (que tu as déjà).
+🔒 **100% local** — your images never transit through any third-party cloud. Everything lives on your Mac at home + Telegram (which you already use).
 
-🗣️ **Alarme dissuasive avec TA voix** — enregistre un message vocal directement depuis Telegram, applique un pitch shift "voix grave de cinéma" automatique, et déclenche-le en boucle au volume max d'un simple `/alarm` quand un intrus est dans ton appart.
+🗣️ **Deterrent alarm in YOUR voice** — record a voice message directly through Telegram, get an automatic "movie villain" pitch shift applied, and trigger it on a loop at max volume with a simple `/alarm` when an intruder is in your apartment.
 
-💬 **Tout pilotable depuis Telegram** — pas d'app à installer pour le surveiller. Pause, reprise, snapshot à la demande, alarme, tout passe par tes messages habituels.
+💬 **Fully Telegram-controlled** — no separate app to install. Pause, resume, snapshot on demand, alarm — everything goes through your usual messaging.
 
-💸 **Gratuit et open source** — pas d'abonnement, pas de pub. Réutilise le vieux Mac qui dort dans ton placard.
+💸 **Free and open source** — no subscriptions, no ads. Reuse that old Mac sleeping in your closet.
 
 ---
 
-## Comment ça marche
+## How it works
 
 ```
-┌─────────────────┐  motion détecté   ┌──────────────┐
-│   Webcam Mac    │ ────────────────► │   Telegram   │
-│ (chez toi)      │   3 photos burst  │   (sur toi)  │
+┌─────────────────┐  motion detected  ┌──────────────┐
+│   Mac webcam    │ ────────────────► │   Telegram   │
+│  (your home)    │   3-photo burst   │  (your phone)│
 └────────┬────────┘                   └──────┬───────┘
          │                                   │
-         │            commandes : /pause, /alarm, etc.
+         │           commands: /pause, /alarm, etc.
          │ ◄─────────────────────────────────┤
          │                                   │
-         │            messages vocaux        │
+         │           voice messages          │
          │ ◄─────────────────────────────────┤
          ▼                                   │
-   joue ton message                          │
-   en boucle à 100%                          │
-   pour faire fuir                           │
+   plays your message                        │
+   on loop at 100%                           │
+   to scare them off                         │
 ```
 
-## Commandes disponibles
+## Available commands
 
-| Commande | Effet |
-|----------|-------|
-| `/pause` | Met la détection en pause **et libère la caméra** (LED éteinte, conso réduite) |
-| `/resume` | Reprend la détection |
-| `/status` | Affiche l'état actuel (actif / en pause) |
-| `/snapshot` | Envoie une photo immédiate |
-| `/alarm` | Déclenche l'alarme dissuasive en boucle au volume max |
-| `/stopalarm` | Arrête l'alarme et restaure le volume initial |
-| `/recordalarm` | Enregistre un nouveau message vocal Telegram qui devient la nouvelle alarme (avec pitch shift auto) |
-| `/sensitivity [valeur]` | Affiche ou modifie le seuil de détection à chaud (sans redémarrer) |
-| `/history [N]` | Liste les N dernières détections (5 par défaut) |
-| `/help` | Affiche la liste des commandes |
+| Command | Effect |
+|---------|--------|
+| `/pause` | Pauses detection **and releases the camera** (LED off, lower power) |
+| `/resume` | Resumes detection |
+| `/status` | Shows current state (active / paused) |
+| `/snapshot` | Sends an immediate photo |
+| `/alarm` | Triggers the deterrent alarm on loop at max volume |
+| `/stopalarm` | Stops the alarm and restores the original volume |
+| `/recordalarm` | Records a new Telegram voice message that becomes the new alarm (with auto pitch shift) |
+| `/sensitivity [value]` | Shows or changes the detection threshold on the fly (no restart) |
+| `/history [N]` | Lists the last N detections (5 by default) |
+| `/help` | Shows the command list |
 
-Tout **message vocal envoyé au bot** est diffusé une fois sur les haut-parleurs (mode intercom à distance). Pendant les 5 min suivant `/recordalarm`, il devient en plus la nouvelle alarme.
+Any **voice message sent to the bot** is played once on the speakers (remote intercom mode). During the 5 minutes following `/recordalarm`, it also becomes the new alarm.
 
-Pas de commande d'arrêt à distance volontairement — un clic accidentel laisserait la caméra hors service jusqu'à ton retour. Pour arrêter, `Ctrl+C` en local ou `launchctl unload` (cf. [AUTOSTART.md](AUTOSTART.md)).
+There is no remote stop command on purpose — an accidental tap would leave the camera dead until you got home. To stop, hit `Ctrl+C` locally or `launchctl unload` (see [AUTOSTART.md](AUTOSTART.md)).
 
-## Prérequis
+## Requirements
 
-- macOS (testé Sequoia, Apple Silicon recommandé pour la conso énergétique)
+- macOS (tested on Sequoia, Apple Silicon recommended for power efficiency)
 - Python 3.8+
-- Une webcam (interne ou USB)
-- Un compte Telegram (gratuit)
-- `ffmpeg` (pour la commande `/recordalarm`) — `brew install ffmpeg` ou `conda install -c conda-forge ffmpeg`
+- A webcam (built-in or USB)
+- A Telegram account (free)
+- `ffmpeg` (for the `/recordalarm` command) — `brew install ffmpeg` or `conda install -c conda-forge ffmpeg`
 
-## Installation rapide
+## Quick install
 
-### 1. Cloner et installer
+### 1. Clone and install
 
 ```bash
-git clone https://github.com/<your-username>/gotchacam.git
+git clone https://github.com/alphaGoGoYet/gotchacam.git
 cd gotchacam
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. Créer le bot Telegram
+### 2. Create the Telegram bot
 
-1. Sur Telegram, parler à **@BotFather** → `/newbot`
-2. Récupérer le **token** (format `123456789:ABC...`)
-3. Envoyer un message à ton bot fraîchement créé
+1. On Telegram, talk to **@BotFather** → `/newbot`
+2. Get the **token** (format `123456789:ABC...`)
+3. Send any message to your newly created bot
 
-### 3. Configurer
+### 3. Configure
 
 ```bash
 cp .env.example .env
-# édite .env : colle ton token sur la ligne TELEGRAM_BOT_TOKEN=
+# edit .env: paste your token on the TELEGRAM_BOT_TOKEN= line
 ```
 
-Récupère ton chat_id :
+Get your chat_id:
 
 ```bash
 python get_chat_id.py
 ```
 
-Colle la valeur sur la ligne `TELEGRAM_CHAT_ID=` de `.env`.
+Paste the value on the `TELEGRAM_CHAT_ID=` line of `.env`.
 
-### 4. Lancer
+### 4. Run
 
 ```bash
 python cam.py
 ```
 
-macOS demande l'autorisation caméra au premier lancement → accepte. Tu reçois `🎥 cam started` sur Telegram. Bouge devant la cam → tu reçois 3 photos en album.
+macOS will request camera permission on first launch → accept. You'll receive `🎥 cam started` on Telegram. Move in front of the camera → you'll get 3 photos as an album.
 
-## Démarrage automatique
+## Auto-start on login
 
-Pour que ça tourne en permanence sans que tu aies à relancer manuellement :
+To keep it running without manual intervention:
 
 ```bash
 bash install_autostart.sh
 ```
 
-Voir [AUTOSTART.md](AUTOSTART.md) pour les détails (logs, arrêt, etc.).
+See [AUTOSTART.md](AUTOSTART.md) for details (logs, stopping, etc.).
 
 ## Configuration
 
-Toutes les variables sont dans [.env.example](.env.example). Les plus utiles :
+All variables are documented in [.env.example](.env.example). The most useful ones:
 
-| Variable | Défaut | Rôle |
-|----------|--------|------|
-| `MIN_AREA` | `5000` | Seuil de détection (plus haut = ignore les petits mouvements) |
-| `BURST_COUNT` | `3` | Nombre de photos par détection |
-| `COOLDOWN_SECONDS` | `3` | Délai mini entre deux alertes |
-| `ALARM_PITCH` | `1.0` | Pitch des enregistrements vocaux (0.75 = -25% pour effet "voix grave") |
-| `SITE_NAME` | *(vide)* | Préfixe les messages, utile si tu as plusieurs caméras |
-| `RETENTION_DAYS` | `30` | Durée de conservation des captures |
+| Variable | Default | Role |
+|----------|---------|------|
+| `LANGUAGE` | `en` | Telegram message language. Use `fr` for French. |
+| `MIN_AREA` | `5000` | Detection threshold (higher = ignores small motions) |
+| `BURST_COUNT` | `3` | Number of photos per detection |
+| `COOLDOWN_SECONDS` | `3` | Minimum delay between two alerts |
+| `ALARM_PITCH` | `1.0` | Pitch of voice recordings (0.75 = -25% for "deep voice" effect) |
+| `SITE_NAME` | *(empty)* | Prefix for messages, useful if you have multiple cameras |
+| `RETENTION_DAYS` | `30` | Capture retention period |
 
-Voir [shared/BEHAVIOR_SPEC.md](shared/BEHAVIOR_SPEC.md) pour la spec comportementale complète.
+See [shared/BEHAVIOR_SPEC.md](shared/BEHAVIOR_SPEC.md) for the complete behavioral specification.
 
 ## Roadmap
 
-- [ ] Portage Android natif (réutiliser un vieux téléphone comme caméra autonome)
-- [ ] Portage Windows / Linux (version cross-platform)
-- [ ] Wizard d'installation graphique (pour utilisateurs non-développeurs)
-- [ ] Détection humain vs ombre/animal (ML Kit / TFLite)
-- [ ] Multi-caméras
+- [ ] Native Android port (turn an old phone into a standalone camera)
+- [ ] Windows / Linux port (cross-platform via audio backend abstraction)
+- [ ] Graphical install wizard (for non-technical users)
+- [ ] Person vs shadow/animal detection (ML Kit / TFLite)
+- [ ] Multi-camera support
 
 ## Architecture
 
-Le projet est conçu pour partager le maximum entre l'implémentation macOS Python et le futur portage Android :
+The project is designed to share as much as possible between the macOS Python implementation and the future Android port:
 
-- [shared/defaults.json](shared/defaults.json) — constantes communes
-- [shared/strings.fr.json](shared/strings.fr.json) — messages Telegram
-- [shared/BEHAVIOR_SPEC.md](shared/BEHAVIOR_SPEC.md) — spec comportementale formelle
+- [shared/defaults.json](shared/defaults.json) — common constants
+- [shared/strings.en.json](shared/strings.en.json) / [shared/strings.fr.json](shared/strings.fr.json) — Telegram messages per language
+- [shared/BEHAVIOR_SPEC.md](shared/BEHAVIOR_SPEC.md) — formal behavioral specification
 
-Voir [MULTIPLATFORM.md](MULTIPLATFORM.md) pour le pattern et la discipline.
+See [MULTIPLATFORM.md](MULTIPLATFORM.md) for the pattern and discipline.
 
 ## Documentation
 
-- [README.md](README.md) — ce fichier
-- [AUTOSTART.md](AUTOSTART.md) — démarrage automatique macOS
-- [MULTIPLATFORM.md](MULTIPLATFORM.md) — architecture multi-plateforme
-- [shared/BEHAVIOR_SPEC.md](shared/BEHAVIOR_SPEC.md) — spec comportementale formelle
+- [README.md](README.md) — this file
+- [README.fr.md](README.fr.md) — French version
+- [AUTOSTART.md](AUTOSTART.md) — automatic startup on macOS
+- [MULTIPLATFORM.md](MULTIPLATFORM.md) — multi-platform architecture
+- [shared/BEHAVIOR_SPEC.md](shared/BEHAVIOR_SPEC.md) — formal behavioral spec
 
-## Remerciements et contexte
+## Acknowledgments and context
 
-Construit pour mon usage personnel (surveiller mon appart depuis le boulot), publié au cas où ça en intéresse d'autres. Pas de prétention à concurrencer Frigate, Alfred ou Wyze — `gotchacam` cible un cas d'usage précis : technicien possesseur de Mac qui veut quelque chose de simple, privacy-respecting et avec un effet "scare them" personnalisé.
+Built for my personal use (monitoring my apartment from work), published in case it helps anyone else. Not pretending to compete with Frigate, Alfred or Wyze — `gotchacam` targets a specific use case: a Mac-owning technically inclined person who wants something simple, privacy-respecting, with a personalized "scare them" effect.
 
 ## License
 
-[MIT](LICENSE) — utilise comme tu veux, modifie comme tu veux. Si tu en fais quelque chose de cool, ping-moi via une issue.
+[MIT](LICENSE) — use as you wish, modify as you wish. If you build something cool with it, ping me via an issue.
 
 ---
 
-⚠️ **Avertissement légal** : tu ne peux filmer que ta propre propriété. Filmer la rue, un voisin, ou un espace public sans consentement explicite est interdit en France (article 226-1 du Code pénal). À toi de bien orienter la caméra.
+⚠️ **Legal warning**: you may only film your own property. Filming a street, a neighbor, or any public space without explicit consent is illegal in most jurisdictions (in France: Article 226-1 of the Penal Code). Aim your camera responsibly.

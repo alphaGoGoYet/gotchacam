@@ -1,0 +1,90 @@
+{
+  "_comment": "All Telegram messages in English. Placeholders use {name} format. Used by Python (str.format) and Kotlin (equivalent). When you change a string here, both implementations pick it up at next build/restart.",
+
+  "service": {
+    "started": "🎥 cam started",
+    "stopped": "🛑 cam stopped"
+  },
+
+  "alarm": {
+    "default_text": "Alert. Intrusion detected. This area is under high-definition video surveillance. Your images have just been transmitted to the police and to the property owner. The owner is on the way and will arrive in a few minutes. Leave the premises immediately.",
+    "started": "🚨 ALARM looping ({source}) — volume max\nSend /stopalarm to stop.",
+    "already_running": "🚨 alarm already running — send /stopalarm to stop",
+    "stopped_with_volume": "🔇 alarm stopped — volume restored ({volume}%)",
+    "stopped_no_volume": "🔇 alarm stopped",
+    "no_alarm_running": "no alarm currently running",
+    "source_recording": "🔊 recording",
+    "source_tts": "🗣️ synthesized voice",
+    "executable_missing": "⚠️ command not found: {error}",
+    "tts_unavailable": "⚠️ `say` command not available on this machine"
+  },
+
+  "record_alarm": {
+    "prompt": "🎙️ Send me a voice message within 5 minutes — it will replace the current alarm.\nMax duration: {max} seconds.{pitch_note}",
+    "pitch_note": " (pitch will be applied: {pitch_pct})",
+    "replaced": "✓ alarm replaced{pitch_note} — file: `{filename}`\nSend /alarm to test it.",
+    "replaced_pitch_note": " (pitch {pitch_pct})",
+    "ffmpeg_missing": "❌ ffmpeg not found ({path}). Check FFMPEG_BIN in .env.",
+    "conversion_failed": "❌ ffmpeg conversion failed — see cam.err"
+  },
+
+  "voice": {
+    "diffused": "🔊 message played",
+    "diffusion_failed": "❌ afplay failed (code {code})",
+    "audio_conversion_failed": "❌ audio conversion failed — see cam.err",
+    "too_long": "⚠️ message too long ({duration}s) — max {max}s"
+  },
+
+  "pause": {
+    "paused": "⏸️ detection paused",
+    "resumed": "▶️ detection resumed"
+  },
+
+  "status": {
+    "label": "State: {state}",
+    "active": "▶️ active",
+    "paused": "⏸️ paused (camera off)"
+  },
+
+  "snapshot": {
+    "caption": "📸 snapshot — {time}",
+    "not_ready": "⏳ camera not ready yet, try again in a second",
+    "paused": "⏸️ camera is off during pause — send /resume before taking a photo",
+    "send_failed": "❌ send failed: {error}"
+  },
+
+  "motion": {
+    "caption": "Motion detected — {time} (area={area}, {count} photos over {span}s)"
+  },
+
+  "site_prefix": "📍 {site} — ",
+
+  "sensitivity": {
+    "current": "Current sensitivity: MIN_AREA = {value} pixels.\nUsage: `/sensitivity <number>` to change (higher = less sensitive, ignores small motions).",
+    "updated": "✓ MIN_AREA = {value} pixels (was {previous})",
+    "invalid": "❌ invalid value. Expected a positive integer. Got: `{input}`"
+  },
+
+  "history": {
+    "empty": "📜 no detection recorded yet",
+    "header": "📜 Recent detections ({count}):",
+    "item": "• {timestamp}"
+  },
+
+  "help": {
+    "header": "Available commands:",
+    "commands": [
+      "/pause — pause detection",
+      "/resume — resume detection",
+      "/status — show current state",
+      "/snapshot — send an immediate photo",
+      "/alarm — start the deterrent alarm in a loop (volume max)",
+      "/stopalarm — stop the running alarm",
+      "/recordalarm — record a voice message that will replace the alarm",
+      "/sensitivity [value] — show or change the detection threshold (MIN_AREA)",
+      "/history [N] — list the last N detections (default 5, max 20)",
+      "/help — show this help"
+    ],
+    "footer": "Send a voice message to play it once on the speakers (remote intercom)."
+  }
+}
