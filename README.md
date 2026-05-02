@@ -136,14 +136,6 @@ Toutes les variables sont dans [.env.example](.env.example). Les plus utiles :
 
 Voir [shared/BEHAVIOR_SPEC.md](shared/BEHAVIOR_SPEC.md) pour la spec comportementale complète.
 
-## Tester
-
-```bash
-.venv/bin/python -m pytest shared/e2e-tests/test_smoke.py -v
-```
-
-11 tests vérifient l'intégrité du code et des assets partagés.
-
 ## Roadmap
 
 - [ ] Portage Android natif (réutiliser un vieux téléphone comme caméra autonome)
@@ -159,7 +151,6 @@ Le projet est conçu pour partager le maximum entre l'implémentation macOS Pyth
 - [shared/defaults.json](shared/defaults.json) — constantes communes
 - [shared/strings.fr.json](shared/strings.fr.json) — messages Telegram
 - [shared/BEHAVIOR_SPEC.md](shared/BEHAVIOR_SPEC.md) — spec comportementale formelle
-- [shared/e2e-tests/](shared/e2e-tests/) — tests d'intégration
 
 Voir [MULTIPLATFORM.md](MULTIPLATFORM.md) pour le pattern et la discipline.
 

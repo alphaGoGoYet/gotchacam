@@ -17,5 +17,8 @@ WINDOWS_PORT.md
 PACKAGING.md
 DEPLOYMENT.md
 
+# Tests internes — non publics
+shared/e2e-tests/
+
 # Pytest cache
 .pytest_cache/
