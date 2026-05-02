@@ -8,8 +8,7 @@
 
 🇫🇷 [Version française disponible](README.fr.md)
 
-<!-- Demo GIF placeholder -->
-<!-- ![demo](docs/demo.gif) -->
+![gotchacam in action](docs/demo.gif)
 
 ---
 

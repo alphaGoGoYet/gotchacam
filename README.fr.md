@@ -7,8 +7,7 @@
 [![Made for macOS](https://img.shields.io/badge/macOS-Apple%20Silicon-lightgrey)](#prerequisites)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue)](#prerequisites)
 
-<!-- Placeholder pour GIF démo -->
-<!-- ![demo](docs/demo.gif) -->
+![gotchacam en action](docs/demo.gif)
 
 ---
 
