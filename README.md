@@ -146,10 +146,10 @@ Voir [shared/BEHAVIOR_SPEC.md](shared/BEHAVIOR_SPEC.md) pour la spec comportemen
 
 ## Roadmap
 
-- [ ] [Portage Android natif](ANDROID_PORT.md) — réutiliser un vieux téléphone comme caméra autonome
-- [ ] [Portage Windows](WINDOWS_PORT.md) — version cross-platform via abstraction audio
-- [ ] [Wizard d'installation graphique](PACKAGING.md) — pour distribuer aux non-développeurs
-- [ ] Détection humain vs ombre/animal (ML Kit)
+- [ ] Portage Android natif (réutiliser un vieux téléphone comme caméra autonome)
+- [ ] Portage Windows / Linux (version cross-platform)
+- [ ] Wizard d'installation graphique (pour utilisateurs non-développeurs)
+- [ ] Détection humain vs ombre/animal (ML Kit / TFLite)
 - [ ] Multi-caméras
 
 ## Architecture
@@ -168,10 +168,7 @@ Voir [MULTIPLATFORM.md](MULTIPLATFORM.md) pour le pattern et la discipline.
 - [README.md](README.md) — ce fichier
 - [AUTOSTART.md](AUTOSTART.md) — démarrage automatique macOS
 - [MULTIPLATFORM.md](MULTIPLATFORM.md) — architecture multi-plateforme
-- [ANDROID_PORT.md](ANDROID_PORT.md) — plan de portage Android
-- [WINDOWS_PORT.md](WINDOWS_PORT.md) — plan de portage Windows
-- [PACKAGING.md](PACKAGING.md) — distribution avec wizard d'install
-- [DEPLOYMENT.md](DEPLOYMENT.md) — plan de déploiement public
+- [shared/BEHAVIOR_SPEC.md](shared/BEHAVIOR_SPEC.md) — spec comportementale formelle
 
 ## Remerciements et contexte
 
