@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>gotchacam — demo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/roughjs@4.6.6/bundled/rough.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #fafaf6;
+      font-family: 'Caveat', cursive;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .stage {
+      position: relative;
+      width: 1000px;
+      height: 600px;
+    }
+    .scene {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      animation: cycle 16s infinite ease-in-out;
+    }
+    .scene.s1 { animation-delay: 0s; }
+    .scene.s2 { animation-delay: 4s; }
+    .scene.s3 { animation-delay: 8s; }
+    .scene.s4 { animation-delay: 12s; }
+
+    @keyframes cycle {
+      0%   { opacity: 0; transform: translateY(20px); }
+      3%   { opacity: 1; transform: translateY(0); }
+      22%  { opacity: 1; transform: translateY(0); }
+      25%  { opacity: 0; transform: translateY(-20px); }
+      100% { opacity: 0; transform: translateY(-20px); }
+    }
+
+    .caption {
+      position: absolute;
+      bottom: 40px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 42px;
+      font-weight: 700;
+      color: #2a2a2a;
+    }
+    .caption .accent { color: #d35400; }
+
+    .brand {
+      position: absolute;
+      top: 24px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 28px;
+      color: #999;
+      letter-spacing: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <div class="brand">gotchacam</div>
+
+    <div class="scene s1">
+      <svg id="svg1" width="1000" height="600" viewBox="0 0 1000 600"></svg>
+      <div class="caption">Your Mac silently watches your home</div>
+    </div>
+
+    <div class="scene s2">
+      <svg id="svg2" width="1000" height="600" viewBox="0 0 1000 600"></svg>
+      <div class="caption">Motion → <span class="accent">3 photos in Telegram</span>, instantly</div>
+    </div>
+
+    <div class="scene s3">
+      <svg id="svg3" width="1000" height="600" viewBox="0 0 1000 600"></svg>
+      <div class="caption">Scare them off with <span class="accent">YOUR voice</span> on loop</div>
+    </div>
+
+    <div class="scene s4">
+      <svg id="svg4" width="1000" height="600" viewBox="0 0 1000 600"></svg>
+      <div class="caption">Or just <span class="accent">talk through it</span> — voice → speakers, instantly</div>
+    </div>
+  </div>
+
+  <script>
+    const HAND = { roughness: 1.8, strokeWidth: 2.2, bowing: 1.5 };
+    const HAND_BOLD = { roughness: 1.6, strokeWidth: 3, bowing: 1 };
+
+    function svg(id) { return document.getElementById(id); }
+    function add(target, node) { target.appendChild(node); }
+    function text(target, x, y, str, size = 24, color = '#333') {
+      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.setAttribute('x', x); t.setAttribute('y', y);
+      t.setAttribute('font-family', 'Caveat, cursive');
+      t.setAttribute('font-size', size);
+      t.setAttribute('fill', color);
+      t.setAttribute('text-anchor', 'middle');
+      t.textContent = str;
+      target.appendChild(t);
+    }
+
+    // ------------------------------------------------------------------
+    // Scene 1 — Mac watches house
+    // ------------------------------------------------------------------
+    {
+      const r = rough.svg(svg('svg1'));
+      const s = svg('svg1');
+
+      // House (left)
+      add(s, r.polygon([[180, 320], [280, 220], [380, 320]], HAND));
+      add(s, r.rectangle(200, 320, 160, 150, HAND));
+      add(s, r.rectangle(255, 380, 50, 90, HAND));         // door
+      add(s, r.rectangle(330, 350, 30, 30, HAND));         // window
+      text(s, 280, 510, 'home', 32, '#666');
+
+      // Mac (right) — laptop opened
+      add(s, r.line(620, 460, 880, 460, HAND));            // base bottom
+      add(s, r.polygon([[640, 460], [860, 460], [840, 270], [660, 270]], HAND));
+      add(s, r.rectangle(680, 290, 140, 150, HAND));       // screen content area
+
+      // Eye / camera on Mac
+      add(s, r.circle(750, 250, 28, HAND_BOLD));
+      add(s, r.circle(750, 250, 10, { ...HAND, fill: '#2a2a2a', fillStyle: 'solid' }));
+
+      // Watching dashed line eye → house
+      const dash = r.line(720, 260, 360, 360, { ...HAND, strokeLineDash: [6, 8] });
+      add(s, dash);
+
+      text(s, 750, 525, 'mac', 32, '#666');
+    }
+
+    // ------------------------------------------------------------------
+    // Scene 2 — Motion → Telegram
+    // ------------------------------------------------------------------
+    {
+      const r = rough.svg(svg('svg2'));
+      const s = svg('svg2');
+
+      // House with intruder silhouette
+      add(s, r.polygon([[60, 290], [150, 200], [240, 290]], HAND));
+      add(s, r.rectangle(80, 290, 140, 130, HAND));
+
+      // Stick figure intruder
+      add(s, r.circle(150, 340, 22, HAND_BOLD));
+      add(s, r.line(150, 351, 150, 395, HAND_BOLD));
+      add(s, r.line(150, 365, 130, 380, HAND_BOLD));
+      add(s, r.line(150, 365, 170, 380, HAND_BOLD));
+      add(s, r.line(150, 395, 138, 420, HAND_BOLD));
+      add(s, r.line(150, 395, 162, 420, HAND_BOLD));
+
+      // Motion squiggles
+      add(s, r.line(180, 320, 200, 310, HAND_BOLD));
+      add(s, r.line(185, 335, 205, 335, HAND_BOLD));
+      add(s, r.line(180, 350, 200, 360, HAND_BOLD));
+      text(s, 250, 320, '!!!', 60, '#d35400');
+
+      // Mac in middle — flash
+      add(s, r.line(360, 430, 580, 430, HAND));
+      add(s, r.polygon([[380, 430], [560, 430], [545, 290], [395, 290]], HAND));
+      add(s, r.rectangle(415, 305, 110, 110, HAND));
+      add(s, r.circle(470, 280, 22, HAND_BOLD));
+      add(s, r.circle(470, 280, 9, { ...HAND, fill: '#2a2a2a', fillStyle: 'solid' }));
+
+      // Arrow Mac → phone
+      add(s, r.line(600, 360, 760, 360, HAND_BOLD));
+      add(s, r.line(745, 350, 760, 360, HAND_BOLD));
+      add(s, r.line(745, 370, 760, 360, HAND_BOLD));
+
+      // Phone (right) with photo bubble
+      add(s, r.rectangle(780, 200, 150, 280, { ...HAND, fill: '#fff', fillStyle: 'solid' }));
+      add(s, r.rectangle(795, 220, 120, 160, HAND));   // photo
+      add(s, r.line(803, 240, 905, 240, HAND));
+      add(s, r.line(803, 260, 880, 260, HAND));
+      add(s, r.line(803, 280, 895, 280, HAND));
+      // tiny telegram-like badge
+      add(s, r.circle(890, 220, 18, { ...HAND_BOLD, fill: '#d35400', fillStyle: 'solid' }));
+      text(s, 890, 226, '3', 22, '#fff');
+
+      text(s, 855, 510, 'your phone', 28, '#666');
+    }
+
+    // ------------------------------------------------------------------
+    // Scene 3 — /alarm → intruder flees
+    // ------------------------------------------------------------------
+    {
+      const r = rough.svg(svg('svg3'));
+      const s = svg('svg3');
+
+      // Phone (left) showing /alarm message
+      add(s, r.rectangle(80, 200, 150, 280, { ...HAND, fill: '#fff', fillStyle: 'solid' }));
+      // chat bubble with /alarm
+      add(s, r.rectangle(95, 230, 120, 50, { ...HAND, fill: '#d35400', fillStyle: 'solid' }));
+      text(s, 155, 263, '/alarm', 30, '#fff');
+      // bot reply bubble
+      add(s, r.rectangle(95, 295, 120, 70, HAND));
+      text(s, 155, 320, '🚨 ALARM', 22, '#333');
+      text(s, 155, 345, 'looping...', 22, '#333');
+
+      // Arrow phone → mac
+      add(s, r.line(245, 340, 360, 340, HAND_BOLD));
+      add(s, r.line(345, 330, 360, 340, HAND_BOLD));
+      add(s, r.line(345, 350, 360, 340, HAND_BOLD));
+
+      // Mac broadcasting sound (middle)
+      add(s, r.line(380, 430, 600, 430, HAND));
+      add(s, r.polygon([[400, 430], [580, 430], [565, 290], [415, 290]], HAND));
+      add(s, r.rectangle(435, 305, 110, 110, HAND));
+      // sound waves emanating right
+      for (let i = 1; i <= 4; i++) {
+        const radius = 30 * i;
+        add(s, r.path(
+          `M ${600 + radius * 0.7} ${340 - radius * 0.7} A ${radius} ${radius} 0 0 1 ${600 + radius * 0.7} ${340 + radius * 0.7}`,
+          { ...HAND, strokeWidth: 2.5 }
+        ));
+      }
+
+      // Stick figure intruder running away (right)
+      add(s, r.circle(840, 280, 22, HAND_BOLD));
+      add(s, r.line(840, 291, 850, 340, HAND_BOLD));
+      add(s, r.line(842, 305, 870, 295, HAND_BOLD));   // arm forward
+      add(s, r.line(840, 305, 815, 320, HAND_BOLD));   // arm back
+      add(s, r.line(850, 340, 875, 380, HAND_BOLD));   // leg running
+      add(s, r.line(850, 340, 825, 370, HAND_BOLD));
+      // sweat drops
+      add(s, r.circle(820, 270, 6, { ...HAND, fill: '#3498db', fillStyle: 'solid' }));
+      add(s, r.circle(805, 290, 5, { ...HAND, fill: '#3498db', fillStyle: 'solid' }));
+      // motion lines behind running figure
+      add(s, r.line(790, 295, 770, 290, HAND_BOLD));
+      add(s, r.line(795, 320, 775, 320, HAND_BOLD));
+      add(s, r.line(790, 345, 770, 350, HAND_BOLD));
+
+      text(s, 870, 510, 'bye!', 36, '#d35400');
+    }
+
+    // ------------------------------------------------------------------
+    // Scene 4 — Voice intercom (you talk → Mac plays)
+    // ------------------------------------------------------------------
+    {
+      const r = rough.svg(svg('svg4'));
+      const s = svg('svg4');
+
+      // Phone (left) — recording state
+      add(s, r.rectangle(80, 200, 150, 280, { ...HAND, fill: '#fff', fillStyle: 'solid' }));
+
+      // Microphone icon (centered upper)
+      add(s, r.rectangle(140, 235, 30, 55, { ...HAND, fill: '#d35400', fillStyle: 'solid' }));
+      add(s, r.line(155, 295, 155, 320, HAND_BOLD));
+      add(s, r.line(135, 320, 175, 320, HAND_BOLD));
+      // Mic "halo"
+      add(s, r.circle(155, 262, 50, { ...HAND, strokeWidth: 1.5 }));
+
+      // REC indicator (red pulsing dot + label)
+      add(s, r.circle(115, 360, 12, { ...HAND, fill: '#e74c3c', fillStyle: 'solid' }));
+      text(s, 175, 368, 'REC', 28, '#e74c3c');
+
+      // Voice waveform bubble (showing the recorded audio)
+      add(s, r.rectangle(95, 395, 120, 55, HAND));
+      const bars = [12, 24, 16, 30, 14, 22, 10];
+      bars.forEach((h, i) => {
+        add(s, r.rectangle(105 + i * 14, 422 - h / 2, 5, h, {
+          ...HAND_BOLD,
+          fill: '#666',
+          fillStyle: 'solid',
+        }));
+      });
+
+      // Wavy connection line phone → mac
+      let path = 'M 245 340 ';
+      for (let i = 0; i < 5; i++) {
+        const x1 = 260 + i * 32;
+        const x2 = 280 + i * 32;
+        const ctrlY = i % 2 === 0 ? 315 : 365;
+        path += `Q ${x1} ${ctrlY} ${x2} 340 `;
+      }
+      add(s, r.path(path, { ...HAND_BOLD, strokeWidth: 2.5 }));
+
+      // Arrow head at end
+      add(s, r.line(425, 330, 445, 340, HAND_BOLD));
+      add(s, r.line(425, 350, 445, 340, HAND_BOLD));
+
+      // Mac (right) — broadcasting your voice
+      add(s, r.line(465, 460, 700, 460, HAND));
+      add(s, r.polygon([[485, 460], [680, 460], [665, 290], [500, 290]], HAND));
+      add(s, r.rectangle(520, 305, 125, 130, HAND));
+
+      // Speaker icon on screen
+      add(s, r.polygon(
+        [[555, 350], [575, 340], [590, 340], [590, 400], [575, 400], [555, 390]],
+        { ...HAND, fill: '#d35400', fillStyle: 'solid' }
+      ));
+
+      // Sound waves emanating OUT to the right
+      for (let i = 1; i <= 4; i++) {
+        const radius = 28 * i;
+        add(s, r.path(
+          `M ${700 + radius * 0.7} ${370 - radius * 0.7} A ${radius} ${radius} 0 0 1 ${700 + radius * 0.7} ${370 + radius * 0.7}`,
+          { ...HAND, strokeWidth: 2.2 }
+        ));
+      }
+
+      text(s, 825, 510, 'live audio', 32, '#666');
+    }
+  </script>
+</body>
+</html>
