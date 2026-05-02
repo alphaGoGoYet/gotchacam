@@ -65,8 +65,8 @@ Le README actuel est un manuel d'installation. Pour la publication, il doit auss
 
 - [ ] Vérifier que `.env` est dans `.gitignore` (oui, déjà fait)
 - [ ] Vérifier qu'aucun token, IP, chat_id, ou nom personnel n'est dans le code source
-- [ ] **Révoquer le token Telegram actuel** via BotFather → `/revoke` → @gammagocam_bot. Recréer avec un nouveau token. (Le token actuel a été partagé dans plusieurs conversations Claude, il faut le considérer compromis)
-- [ ] `grep -r "8644171760\|6034767638\|gammagocam" .` → vérifier zéro résultat hors du `.env` local
+- [ ] **Révoquer ton token Telegram** via BotFather → `/revoke` → choisir ton bot. Recréer avec un nouveau token, le mettre dans `.env`. (À faire si le token a fui à un moment ou à un autre — le `.env` est dans `.gitignore` mais une mauvaise manip historique pourrait l'avoir exposé.)
+- [ ] `grep -rE "<TON_TOKEN>|<TON_CHAT_ID>|<NOM_DE_TON_BOT>" .` → vérifier zéro résultat hors du `.env` local avant le push
 
 ## Phase 1 — Publication GitHub (~1 heure)
 
