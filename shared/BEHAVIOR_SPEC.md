@@ -150,6 +150,15 @@ Toutes les commandes sont **réservées** au `chat_id` du compte propriétaire (
 - Si aucune détection : retourne `history.empty`
 - Sinon : retourne `history.header` formaté avec `count = nb réel d'items`, suivi d'une ligne `history.item` par détection avec `timestamp = "YYYY-MM-DD HH:MM:SS"` extrait du nom de fichier
 
+### 4.11 `/clean`
+- Effet :
+  1. Supprimer tous les fichiers de `captures/` (motion, snapshot, voice, audio)
+  2. Pour chaque `(chat_id, message_id)` stocké dans `_sent_message_ids` : appeler `delete_message`. Les erreurs (message trop vieux, déjà supprimé) sont silencieusement ignorées
+  3. Vider `_sent_message_ids`
+- Si rien à supprimer (aucun fichier, aucun message) : réponse `clean.empty`
+- Sinon : réponse `clean.done` formatée avec `count` (fichiers supprimés), `msgs` (messages Telegram effacés), `mb` (Mo libérés, 1 décimale)
+- Log : `clean: N files deleted (X.X MB), M Telegram messages removed`
+
 ---
 
 ## 5. Gestion des messages vocaux et audio
@@ -215,10 +224,14 @@ if paths is empty:
     return
 
 caption = motion.caption formaté avec time, area, count = len(paths), span = burst.intervalSeconds * (burst.count - 1)
-send_media_group(chat_id=CHAT_ID, photos=paths, caption=caption sur la 1ère photo)
+msgs = send_media_group(chat_id=CHAT_ID, photos=paths, caption=caption sur la 1ère photo)
+for m in msgs:
+    _sent_message_ids.append((CHAT_ID, m.message_id))
 ```
 
 Le timestamp inclut les millisecondes pour éviter les collisions de noms quand plusieurs frames du burst tombent dans la même seconde.
+
+Les `message_id` retournés par `send_media_group` sont stockés dans `_sent_message_ids` (liste en mémoire) pour permettre à `/clean` de les effacer ultérieurement (cf. §4.11). Même logique pour `/snapshot` (cf. §4.4).
 
 ---
 
@@ -233,7 +246,10 @@ Le timestamp inclut les millisecondes pour éviter les collisions de noms quand 
 | Variable env | Défaut | Description |
 |--------------|--------|-------------|
 | `TELEGRAM_BOT_TOKEN` | (requis) | Token du bot |
-| `TELEGRAM_CHAT_ID` | (requis) | chat_id de l'utilisateur unique autorisé |
+| `TELEGRAM_CHAT_IDS` | `""` | Liste d'IDs autorisés séparés par des virgules (ex: `111,222`). Si défini, remplace `TELEGRAM_CHAT_ID` |
+| `TELEGRAM_CHAT_ID` | (requis si `CHAT_IDS` absent) | Fallback rétrocompat : un seul ID autorisé |
+| `HTTP_PORT` | `8765` | Port du serveur HTTP local (raccourcis iOS). Ignoré si `HTTP_TOKEN` est vide |
+| `HTTP_TOKEN` | `""` | Token secret protégeant le serveur HTTP. Si vide, le serveur ne démarre pas |
 | `LANGUAGE` | `defaults.json/language` (`en`) | Langue des messages Telegram. Détermine quel `strings.<lang>.json` charger. Fallback sur `en` si la langue demandée n'existe pas |
 | `SITE_NAME` | `""` | Préfixe ajouté à tous les messages, ex `maison` → `📍 maison — ` |
 | `ALARM_SOUND` | `""` | Chemin du fichier audio. Si vide, défaut = `alarm.m4a` à côté du script |
@@ -261,14 +277,43 @@ L'opération doit être tolérante aux erreurs (un fichier locké, un permission
 
 ## 9. Sécurité
 
-- Le `TELEGRAM_CHAT_ID` est l'unique critère d'auth. Toute autre source est rejetée silencieusement
+- La liste `CHAT_IDS` (peuplée depuis `TELEGRAM_CHAT_IDS` ou en fallback depuis `TELEGRAM_CHAT_ID`) est l'unique critère d'auth. Tout message dont ni `effective_chat.id` ni `effective_user.id` n'est dans la liste est silencieusement ignoré
+- `CHAT_IDS` peut contenir indifféremment des chat_ids humains (conversation privée) et des user_ids de bots tiers (ex : bot raccourci Apple)
+- Tous les IDs humains de la liste reçoivent les alertes de mouvement (burst), les messages de démarrage/arrêt, et les erreurs d'alarme
+- `/snapshot` répond uniquement à l'utilisateur qui l'a demandé (son chat_id), pas à tous
 - Le token Telegram doit être stocké hors du code source, dans `.env` ou équivalent secure storage de la plateforme
 - Aucune commande ne permet l'arrêt distant du service par construction (pas de `/stop`) — mesure anti-foot-gun pour éviter de désactiver à distance la surveillance par accident
 - Les fichiers téléchargés depuis Telegram (voice, audio) sont stockés sous `captures/` avec timestamp, pas de validation de contenu (l'auth chat_id est jugée suffisante)
 
 ---
 
-## 10. Tests d'intégration end-to-end
+## 10. Serveur HTTP local (raccourcis iOS)
+
+Si `HTTP_TOKEN` est non vide au démarrage, le service expose un serveur HTTP sur `0.0.0.0:HTTP_PORT`.
+
+### 10.1 Authentification
+
+Chaque requête doit fournir le token en query param : `?token=<HTTP_TOKEN>`. Si le token est absent ou incorrect → HTTP 401 `{"ok": false, "error": "unauthorized"}`.
+
+### 10.2 Endpoints
+
+| Méthode | Chemin | Effet | Réponse succès |
+|---------|--------|-------|----------------|
+| GET | `/cmd/pause` | `paused = true` + broadcast `pause.paused` | `{"ok": true, "state": "paused"}` |
+| GET | `/cmd/resume` | `paused = false` + broadcast `pause.resumed` | `{"ok": true, "state": "active"}` |
+| GET | `/cmd/status` | Aucun | `{"ok": true, "state": "active"\|"paused"}` |
+
+Commande inconnue → HTTP 400 `{"ok": false, "error": "unknown command: <cmd>"}`.
+
+### 10.3 Sécurité
+
+- Le serveur écoute sur `0.0.0.0` (toutes interfaces) mais n'est **pas exposé sur internet** : il est destiné à être atteint via un réseau privé (ex : Tailscale)
+- Le `HTTP_TOKEN` doit être un secret long aléatoire (recommandé : `openssl rand -hex 20`)
+- Les commandes `pause`/`resume` via HTTP envoient aussi une confirmation sur Telegram à tous les `CHAT_IDS`
+
+---
+
+## 12. Tests d'intégration end-to-end
 
 Les tests sous `shared/e2e-tests/` utilisent un bot Telegram dédié au test et vérifient la conformité d'une implémentation à cette spec. Ils doivent passer sur Python ET sur l'app Android (via émulateur + ADB) avant tout merge.
 

@@ -71,6 +71,11 @@
     "item": "• {timestamp}"
   },
 
+  "clean": {
+    "empty": "🗑️ no captures to delete",
+    "done": "🗑️ {count} file(s) deleted, {msgs} Telegram message(s) removed — {mb} MB freed"
+  },
+
   "help": {
     "header": "Available commands:",
     "commands": [
@@ -83,6 +88,7 @@
       "/recordalarm — record a voice message that will replace the alarm",
       "/sensitivity [value] — show or change the detection threshold (MIN_AREA)",
       "/history [N] — list the last N detections (default 5, max 20)",
+      "/clean — delete all captures and history",
       "/help — show this help"
     ],
     "footer": "Send a voice message to play it once on the speakers (remote intercom)."

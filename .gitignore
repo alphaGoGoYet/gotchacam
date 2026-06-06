@@ -10,6 +10,7 @@ captures/
 # Données personnelles à ne pas publier
 alarm.m4a
 SESSION_NOTES.md
+MY_INSTANCE.md
 
 # Plans internes (stratégie produit, monétisation, ports futurs) — non publics
 ANDROID_PORT.md

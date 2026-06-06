@@ -50,6 +50,11 @@
       "spec_section": "4.10"
     },
     {
+      "name": "clean",
+      "description": "Supprimer tous les fichiers du dossier captures/ (images et historique)",
+      "spec_section": "4.11"
+    },
+    {
       "name": "help",
       "description": "Afficher la liste des commandes",
       "spec_section": "4.8"

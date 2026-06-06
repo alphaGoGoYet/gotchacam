@@ -56,11 +56,23 @@
 | `/recordalarm` | Records a new Telegram voice message that becomes the new alarm (with auto pitch shift) |
 | `/sensitivity [value]` | Shows or changes the detection threshold on the fly (no restart) |
 | `/history [N]` | Lists the last N detections (5 by default) |
+| `/clean` | Deletes all captures from disk **and** removes the corresponding Telegram messages |
 | `/help` | Shows the command list |
 
 Any **voice message sent to the bot** is played once on the speakers (remote intercom mode). During the 5 minutes following `/recordalarm`, it also becomes the new alarm.
 
 There is no remote stop command on purpose — an accidental tap would leave the camera dead until you got home. To stop, hit `Ctrl+C` locally or `launchctl unload` (see [AUTOSTART.md](AUTOSTART.md)).
+
+## iOS Shortcuts integration
+
+gotchacam includes a built-in HTTP server for use with Apple Shortcuts (auto-pause when you leave home, auto-resume when you arrive). Configure it in `.env`:
+
+```env
+HTTP_PORT=8765
+HTTP_TOKEN=<a_strong_random_secret>   # openssl rand -hex 20
+```
+
+Then use [Tailscale](https://tailscale.com) (free) to reach the Mac securely from anywhere without exposing anything to the internet. See [SHORTCUTS_IOS.md](SHORTCUTS_IOS.md) for the full setup guide.
 
 ## Requirements
 
@@ -134,6 +146,8 @@ All variables are documented in [.env.example](.env.example). The most useful on
 | `ALARM_PITCH` | `1.0` | Pitch of voice recordings (0.75 = -25% for "deep voice" effect) |
 | `SITE_NAME` | *(empty)* | Prefix for messages, useful if you have multiple cameras |
 | `RETENTION_DAYS` | `30` | Capture retention period |
+| `HTTP_PORT` | `8765` | Port for the iOS Shortcuts HTTP server (disabled if `HTTP_TOKEN` is empty) |
+| `HTTP_TOKEN` | *(empty)* | Secret token protecting the HTTP server — generate with `openssl rand -hex 20` |
 
 See [shared/BEHAVIOR_SPEC.md](shared/BEHAVIOR_SPEC.md) for the complete behavioral specification.
 

@@ -32,6 +32,7 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+from aiohttp import web
 from dotenv import load_dotenv
 from telegram import InputMediaPhoto, Update
 from telegram.error import TelegramError
@@ -48,7 +49,13 @@ if not _strings_path.exists():
 STRINGS = json.loads(_strings_path.read_text())
 
 BOT_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
-CHAT_ID = int(os.environ["TELEGRAM_CHAT_ID"])
+# TELEGRAM_CHAT_IDS : liste d'IDs séparés par des virgules, ex: "111,222,333"
+# Rétrocompat : si absent, utilise TELEGRAM_CHAT_ID (valeur unique)
+_raw_ids = os.getenv("TELEGRAM_CHAT_IDS", "").strip()
+if _raw_ids:
+    CHAT_IDS: set[int] = {int(x.strip()) for x in _raw_ids.split(",") if x.strip()}
+else:
+    CHAT_IDS = {int(os.environ["TELEGRAM_CHAT_ID"])}
 CAMERA_INDEX = int(os.getenv("CAMERA_INDEX", DEFAULTS["camera"]["index"]))
 MOTION_THRESHOLD = int(os.getenv("MOTION_THRESHOLD", DEFAULTS["motion"]["threshold"]))
 MIN_AREA = int(os.getenv("MIN_AREA", DEFAULTS["motion"]["minArea"]))
@@ -67,6 +74,8 @@ ALARM_RECORD_MAX_SECONDS = int(os.getenv("ALARM_RECORD_MAX_SECONDS", DEFAULTS["a
 FFMPEG_BIN = os.getenv("FFMPEG_BIN", "ffmpeg")
 VOICE_PLAYBACK_MAX_SECONDS = int(os.getenv("VOICE_PLAYBACK_MAX_SECONDS", DEFAULTS["alarm"]["voicePlaybackMaxSeconds"]))
 RETENTION_DAYS = int(os.getenv("RETENTION_DAYS", DEFAULTS["captures"]["retentionDays"]))
+HTTP_PORT = int(os.getenv("HTTP_PORT", "8765"))
+HTTP_TOKEN = os.getenv("HTTP_TOKEN", "").strip()
 DEFAULT_ALARM_PATH = Path(__file__).parent / "alarm.m4a"
 
 CAPTURES_DIR = Path(__file__).parent / "captures"
@@ -110,6 +119,8 @@ alarm_active = False
 alarm_proc: asyncio.subprocess.Process | None = None
 alarm_prev_volume: int | None = None
 recording_alarm_deadline: float = 0.0
+_sent_message_ids: list[tuple[int, int]] = []  # (chat_id, message_id) des photos envoyées
+_bot_ref = None  # référence au bot Telegram, initialisée dans main()
 
 HELP_TEXT = (
     STRINGS["help"]["header"]
@@ -130,7 +141,21 @@ def detect_motion(prev_gray, gray) -> tuple[bool, int]:
 
 
 def is_authorized(update: Update) -> bool:
-    return update.effective_chat is not None and update.effective_chat.id == CHAT_ID
+    if update.effective_chat is None:
+        return False
+    return (
+        update.effective_chat.id in CHAT_IDS
+        or (update.effective_user is not None and update.effective_user.id in CHAT_IDS)
+    )
+
+
+async def _broadcast(bot, text: str) -> None:
+    """Envoie un message à tous les CHAT_IDS autorisés."""
+    for cid in CHAT_IDS:
+        try:
+            await bot.send_message(chat_id=cid, text=text)
+        except TelegramError as e:
+            log.error("broadcast to %d failed: %s", cid, e)
 
 
 async def cmd_pause(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> None:
@@ -174,7 +199,8 @@ async def cmd_snapshot(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     caption = SITE_PREFIX + STRINGS["snapshot"]["caption"].format(time=f"{datetime.now():%H:%M:%S}")
     try:
         with path.open("rb") as f:
-            await ctx.bot.send_photo(chat_id=CHAT_ID, photo=f, caption=caption)
+            msg = await ctx.bot.send_photo(chat_id=update.effective_chat.id, photo=f, caption=caption)
+        _sent_message_ids.append((update.effective_chat.id, msg.message_id))
     except TelegramError as e:
         log.error("snapshot send failed: %s", e)
         await update.message.reply_text(STRINGS["snapshot"]["send_failed"].format(error=e))
@@ -346,6 +372,41 @@ async def cmd_history(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("\n".join(lines))
 
 
+async def cmd_clean(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    """Supprime tous les fichiers de captures/ et efface les messages Telegram correspondants."""
+    if not is_authorized(update):
+        return
+    deleted = 0
+    freed = 0
+    for f in CAPTURES_DIR.iterdir():
+        if not f.is_file():
+            continue
+        try:
+            freed += f.stat().st_size
+            f.unlink()
+            deleted += 1
+        except OSError as e:
+            log.warning("clean: could not delete %s: %s", f.name, e)
+
+    msgs_deleted = 0
+    for cid, mid in list(_sent_message_ids):
+        try:
+            await ctx.bot.delete_message(chat_id=cid, message_id=mid)
+            msgs_deleted += 1
+        except TelegramError:
+            pass
+    _sent_message_ids.clear()
+
+    if deleted == 0 and msgs_deleted == 0:
+        await update.message.reply_text(STRINGS["clean"]["empty"])
+    else:
+        freed_mb = freed / 1024 / 1024
+        await update.message.reply_text(
+            STRINGS["clean"]["done"].format(count=deleted, msgs=msgs_deleted, mb=f"{freed_mb:.1f}")
+        )
+    log.info("clean: %d files deleted (%.1f MB), %d Telegram messages removed", deleted, freed / 1024 / 1024, msgs_deleted)
+
+
 async def cmd_sensitivity(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     """Affiche ou ajuste MIN_AREA à chaud. Sans argument : affiche la valeur courante."""
     if not is_authorized(update):
@@ -431,13 +492,7 @@ async def _alarm_loop(bot) -> None:
             await alarm_proc.wait()
         except FileNotFoundError as e:
             log.error("alarm command missing: %s", e)
-            try:
-                await bot.send_message(
-                    chat_id=CHAT_ID,
-                    text=STRINGS["alarm"]["executable_missing"].format(error=e),
-                )
-            except TelegramError:
-                pass
+            await _broadcast(bot, STRINGS["alarm"]["executable_missing"].format(error=e))
             break
         finally:
             alarm_proc = None
@@ -526,20 +581,23 @@ async def capture_burst(bot, area: int) -> None:
         count=len(paths),
         span=f"{BURST_INTERVAL * (BURST_COUNT - 1):.1f}",
     )
-    try:
-        files = [p.open("rb") for p in paths]
+    for cid in CHAT_IDS:
         try:
-            media = [
-                InputMediaPhoto(media=f, caption=caption if i == 0 else None)
-                for i, f in enumerate(files)
-            ]
-            await bot.send_media_group(chat_id=CHAT_ID, media=media)
-        finally:
-            for f in files:
-                f.close()
-        log.info("burst sent: %d photos", len(paths))
-    except TelegramError as e:
-        log.error("telegram send failed: %s", e)
+            files = [p.open("rb") for p in paths]
+            try:
+                media = [
+                    InputMediaPhoto(media=f, caption=caption if i == 0 else None)
+                    for i, f in enumerate(files)
+                ]
+                sent = await bot.send_media_group(chat_id=cid, media=media)
+                for m in sent:
+                    _sent_message_ids.append((cid, m.message_id))
+            finally:
+                for f in files:
+                    f.close()
+        except TelegramError as e:
+            log.error("telegram send to %d failed: %s", cid, e)
+    log.info("burst sent: %d photos to %d chat(s)", len(paths), len(CHAT_IDS))
 
 
 async def camera_loop(bot) -> None:
@@ -603,6 +661,50 @@ async def camera_loop(bot) -> None:
         log.info("camera released")
 
 
+async def _http_handler(request: web.Request) -> web.Response:
+    """Endpoint HTTP local pour les raccourcis iOS / automatisations externes."""
+    token = request.rel_url.query.get("token", "")
+    if not token or token != HTTP_TOKEN:
+        return web.json_response({"ok": False, "error": "unauthorized"}, status=401)
+
+    command = request.match_info.get("command", "")
+    global paused
+
+    if command == "pause":
+        paused = True
+        log.info("paused via HTTP")
+        if _bot_ref:
+            asyncio.create_task(_broadcast(_bot_ref, STRINGS["pause"]["paused"]))
+        return web.json_response({"ok": True, "state": "paused"})
+
+    elif command == "resume":
+        paused = False
+        log.info("resumed via HTTP")
+        if _bot_ref:
+            asyncio.create_task(_broadcast(_bot_ref, STRINGS["pause"]["resumed"]))
+        return web.json_response({"ok": True, "state": "active"})
+
+    elif command == "status":
+        state = "paused" if paused else "active"
+        return web.json_response({"ok": True, "state": state})
+
+    return web.json_response({"ok": False, "error": f"unknown command: {command}"}, status=400)
+
+
+async def _start_http_server() -> None:
+    """Démarre le serveur HTTP local si HTTP_TOKEN est configuré."""
+    if not HTTP_TOKEN:
+        log.info("HTTP server disabled (HTTP_TOKEN not set)")
+        return
+    app = web.Application()
+    app.router.add_get("/cmd/{command}", _http_handler)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", HTTP_PORT)
+    await site.start()
+    log.info("HTTP server listening on 0.0.0.0:%d", HTTP_PORT)
+
+
 async def main() -> None:
     global stop_event
     stop_event = asyncio.Event()
@@ -617,6 +719,7 @@ async def main() -> None:
     app.add_handler(CommandHandler("recordalarm", cmd_recordalarm))
     app.add_handler(CommandHandler("sensitivity", cmd_sensitivity))
     app.add_handler(CommandHandler("history", cmd_history))
+    app.add_handler(CommandHandler("clean", cmd_clean))
     app.add_handler(CommandHandler("help", cmd_help))
     app.add_handler(CommandHandler("start", cmd_help))
     app.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, on_voice))
@@ -629,17 +732,14 @@ async def main() -> None:
         await app.start()
         await app.updater.start_polling(drop_pending_updates=True)
         try:
-            await app.bot.send_message(
-                chat_id=CHAT_ID,
-                text=f"{SITE_PREFIX}{STRINGS['service']['started']}\n\n{HELP_TEXT}",
-            )
+            global _bot_ref
+            _bot_ref = app.bot
+            await _start_http_server()
+            await _broadcast(app.bot, f"{SITE_PREFIX}{STRINGS['service']['started']}\n\n{HELP_TEXT}")
             await camera_loop(app.bot)
         finally:
             try:
-                await app.bot.send_message(
-                    chat_id=CHAT_ID,
-                    text=SITE_PREFIX + STRINGS["service"]["stopped"],
-                )
+                await _broadcast(app.bot, SITE_PREFIX + STRINGS["service"]["stopped"])
             except TelegramError:
                 pass
             await app.updater.stop()

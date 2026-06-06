@@ -71,6 +71,11 @@
     "item": "• {timestamp}"
   },
 
+  "clean": {
+    "empty": "🗑️ aucune capture à supprimer",
+    "done": "🗑️ {count} fichier(s) supprimé(s), {msgs} message(s) Telegram effacé(s) — {mb} Mo libérés"
+  },
+
   "help": {
     "header": "Commandes disponibles :",
     "commands": [
@@ -83,6 +88,7 @@
       "/recordalarm — enregistrer un message vocal qui remplacera l'alarme",
       "/sensitivity [valeur] — afficher ou changer le seuil de détection (MIN_AREA)",
       "/history [N] — lister les N dernières détections (défaut 5, max 20)",
+      "/clean — supprimer toutes les captures et l'historique",
       "/help — afficher cette aide"
     ],
     "footer": "Envoie un message vocal pour qu'il soit diffusé une fois sur les haut-parleurs."
