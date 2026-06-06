@@ -33,18 +33,29 @@
       width: 100%;
       height: 100%;
       opacity: 0;
-      animation: cycle 16s infinite ease-in-out;
+      animation-duration: 20s;
+      animation-iteration-count: infinite;
+      animation-timing-function: ease-in-out;
     }
-    .scene.s1 { animation-delay: 0s; }
-    .scene.s2 { animation-delay: 4s; }
-    .scene.s3 { animation-delay: 8s; }
-    .scene.s4 { animation-delay: 12s; }
+    /* scene 1 et 4 restent visibles 6 secondes (au lieu de 4) — pause d'introduction et de conclusion */
+    .scene.s1 { animation-name: scene-long;  animation-delay: 0s;  }
+    .scene.s2 { animation-name: scene-short; animation-delay: 6s;  }
+    .scene.s3 { animation-name: scene-short; animation-delay: 10s; }
+    .scene.s4 { animation-name: scene-long;  animation-delay: 14s; }
 
-    @keyframes cycle {
+    @keyframes scene-long {
       0%   { opacity: 0; transform: translateY(20px); }
       3%   { opacity: 1; transform: translateY(0); }
-      22%  { opacity: 1; transform: translateY(0); }
-      25%  { opacity: 0; transform: translateY(-20px); }
+      28%  { opacity: 1; transform: translateY(0); }
+      30%  { opacity: 0; transform: translateY(-20px); }
+      100% { opacity: 0; transform: translateY(-20px); }
+    }
+
+    @keyframes scene-short {
+      0%   { opacity: 0; transform: translateY(20px); }
+      3%   { opacity: 1; transform: translateY(0); }
+      18%  { opacity: 1; transform: translateY(0); }
+      20%  { opacity: 0; transform: translateY(-20px); }
       100% { opacity: 0; transform: translateY(-20px); }
     }
 
