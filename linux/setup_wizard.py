@@ -337,6 +337,35 @@ def step_audio(old: dict[str, str]) -> tuple[str, str, str]:
         print("  Essayons une autre sortie.")
 
 
+# ── Performance ───────────────────────────────────────────────────────────
+
+PROFILES = [
+    ("Équilibré (recommandé) — analyse 320 px, 5 fois/s", 320, 5),
+    ("Économe — analyse 240 px, 3 fois/s (Pi chargé ou ancien)", 240, 3),
+    ("Précis — analyse 480 px, 8 fois/s (petits mouvements, plus de CPU)", 480, 8),
+]
+
+
+def step_perf(old: dict[str, str]) -> dict[str, str]:
+    title("Performance (charge du processeur)")
+    print(
+        "La détection analyse une image réduite, un nombre limité de fois par seconde. Les photos\n"
+        "envoyées restent en pleine résolution. Plus c'est élevé, plus c'est précis et plus le CPU travaille."
+    )
+    current = (old.get("DETECT_WIDTH"), old.get("ANALYSIS_FPS"))
+    labels = [p[0] for p in PROFILES] + ["Personnalisé"]
+    default = next((i for i, p in enumerate(PROFILES) if (str(p[1]), str(p[2])) == current), 0)
+    if current != (None, None) and default == 0 and current != ("320", "5"):
+        default = len(PROFILES)  # valeurs existantes hors profils → personnalisé
+    pick = choose("Profil :", labels, default)
+    if pick < len(PROFILES):
+        width, fps = PROFILES[pick][1], PROFILES[pick][2]
+    else:
+        width = ask_int("Largeur d'analyse en pixels (0 = taille native, lourd)", int(old.get("DETECT_WIDTH") or 320))
+        fps = ask_int("Analyses par seconde (1-30)", int(float(old.get("ANALYSIS_FPS") or 5)), 1)
+    return {"DETECT_WIDTH": str(width), "ANALYSIS_FPS": str(fps)}
+
+
 # ── Divers ────────────────────────────────────────────────────────────────
 
 def step_misc(old: dict[str, str]) -> dict[str, str]:
@@ -363,7 +392,7 @@ def step_misc(old: dict[str, str]) -> dict[str, str]:
 MANAGED = [
     "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_IDS", "TELEGRAM_CHAT_ID", "LANGUAGE", "SITE_NAME",
     "CAMERA_INDEX", "CAMERA_WIDTH", "CAMERA_HEIGHT", "AUDIO_DEVICE", "AUDIO_CARD", "AUDIO_CONTROL",
-    "RETENTION_DAYS", "HTTP_PORT", "HTTP_TOKEN",
+    "RETENTION_DAYS", "HTTP_PORT", "HTTP_TOKEN", "DETECT_WIDTH", "ANALYSIS_FPS",
 ]
 
 
@@ -394,6 +423,7 @@ def main() -> None:
     token, ids, _bot = step_telegram(old)
     index, width, height = step_camera(old)
     device, card, control = step_audio(old)
+    perf = step_perf(old)
     misc = step_misc(old)
 
     values = {
@@ -405,6 +435,7 @@ def main() -> None:
         "AUDIO_DEVICE": device,
         "AUDIO_CARD": card,
         "AUDIO_CONTROL": control,
+        **perf,
         **misc,
     }
     title("Récapitulatif")

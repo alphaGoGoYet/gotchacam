@@ -17,7 +17,7 @@ L'installeur :
 2. crée `.venv` et installe les dépendances (`linux/requirements.txt`, OpenCV *headless*) ;
 3. lance l'assistant qui te demande : token du bot, chat ID (détecté automatiquement quand tu écris
    au bot), caméra (liste des webcams réellement utilisables + photo de test), résolution,
-   haut-parleur (avec bip de test), langue, nom du site, durée de conservation des photos,
+   haut-parleur (avec bip de test), profil de performance (charge CPU : économe / équilibré / précis), langue, nom du site, durée de conservation des photos,
    serveur HTTP optionnel ;
 4. écrit `.env` (permissions 600) et le service systemd `gotchacam` ;
 5. te demande si tu veux l'activer au démarrage et le lancer maintenant.
