@@ -5,6 +5,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Made for macOS](https://img.shields.io/badge/macOS-Apple%20Silicon-lightgrey)](#prerequisites)
+[![Raspberry Pi / Linux](https://img.shields.io/badge/Linux-Raspberry%20Pi-c51a4a)](linux/README.md)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue)](#prerequisites)
 
 ![gotchacam en action](docs/demo.gif)
@@ -63,13 +64,24 @@ Pas de commande d'arrêt à distance volontairement — un clic accidentel laiss
 
 ## Prérequis
 
-- macOS (testé Sequoia, Apple Silicon recommandé pour la conso énergétique)
+- macOS (testé Sequoia, Apple Silicon recommandé pour la conso énergétique) **ou** Linux / Raspberry Pi 4 avec une webcam USB — voir [Raspberry Pi / Linux](#raspberry-pi--linux)
 - Python 3.8+
 - Une webcam (interne ou USB)
 - Un compte Telegram (gratuit)
 - `ffmpeg` (pour la commande `/recordalarm`) — `brew install ffmpeg` ou `conda install -c conda-forge ffmpeg`
 
-## Installation rapide
+## Raspberry Pi / Linux
+
+Une seule commande, avec un installeur interactif qui te demande le token Telegram, la caméra, le haut-parleur et le profil CPU, puis configure un service systemd :
+
+```bash
+git clone https://github.com/alphaGoGoYet/gotchacam.git ~/cam
+cd ~/cam && bash linux/install.sh
+```
+
+Il faut un OS 64 bits (Raspberry Pi OS recommandé) et une webcam USB. Crée d'abord ton bot avec **@BotFather** (`/newbot`). Détails, réglages et dépannage : [linux/README.md](linux/README.md).
+
+## Installation rapide (macOS)
 
 ### 1. Cloner et installer
 
@@ -159,6 +171,7 @@ Voir [MULTIPLATFORM.md](MULTIPLATFORM.md) pour le pattern et la discipline.
 
 - [README.md](README.md) — ce fichier
 - [AUTOSTART.md](AUTOSTART.md) — démarrage automatique macOS
+- [linux/README.md](linux/README.md) — installation Raspberry Pi / Linux, réglages, dépannage
 - [MULTIPLATFORM.md](MULTIPLATFORM.md) — architecture multi-plateforme
 - [shared/BEHAVIOR_SPEC.md](shared/BEHAVIOR_SPEC.md) — spec comportementale formelle
 
