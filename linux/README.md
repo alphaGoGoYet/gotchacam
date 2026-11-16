@@ -1,6 +1,6 @@
 # gotchacam sur Raspberry Pi / Linux
 
-Testé pour : Raspberry Pi 4 sous Raspberry Pi OS **64 bits** (Bookworm), avec une **webcam USB**.
+Utilisé sur : Raspberry Pi 4 avec une **webcam USB**, Raspberry Pi OS **64 bits** recommandé.
 Devrait fonctionner sur toute Debian/Ubuntu avec `apt` et `systemd`.
 
 ## Installation
@@ -24,6 +24,13 @@ L'installeur :
 
 Avant de lancer l'installeur, crée ton bot avec **@BotFather** (`/newbot`) pour avoir le token.
 
+## Mettre à jour
+
+```bash
+cd ~/cam && git pull && sudo systemctl restart gotchacam
+```
+Le `.env` n'est pas touché. Relance `bash linux/install.sh` seulement si les dépendances changent.
+
 ## Commandes utiles
 
 | Action | Commande |
@@ -32,6 +39,36 @@ Avant de lancer l'installeur, crée ton bot avec **@BotFather** (`/newbot`) pour
 | Redémarrer | `sudo systemctl restart gotchacam` |
 | Refaire la configuration | `bash linux/install.sh --reconfigure` puis redémarrer |
 | Retirer le service | `bash linux/install.sh --uninstall` |
+
+## Réglages (fichier `.env`)
+
+Tout se règle dans `~/cam/.env` (ou via `bash linux/install.sh --reconfigure`), puis
+`sudo systemctl restart gotchacam`. Les principaux :
+
+| Réglage | Rôle | Défaut |
+|---|---|---|
+| `CAMERA_INDEX` | caméra utilisée (`N` = `/dev/videoN`) | 0 |
+| `CAMERA_WIDTH` / `CAMERA_HEIGHT` | résolution des photos (doit être gérée par la caméra : `v4l2-ctl -d /dev/video0 --list-formats-ext`) | 1280×720 |
+| `DETECT_WIDTH` | largeur de l'image analysée ; plus bas = moins de CPU, moins précis | 320 |
+| `ANALYSIS_FPS` | analyses par seconde | 5 |
+| `MIN_AREA` | taille minimale d'un mouvement (pixels de l'image native) | 5000 |
+| `COOLDOWN_SECONDS` | délai minimum entre deux alertes | 3 |
+| `RETENTION_DAYS` | durée de conservation des photos | 14 |
+| `AUDIO_DEVICE`, `AUDIO_CARD`, `AUDIO_CONTROL` | sortie audio ALSA et volume | `default`, –, `Master` |
+
+La liste complète est dans [.env.example](../.env.example).
+
+## Dépannage
+
+- **Caméra non détectée** : vérifie `ls /dev/video*` et `groups` (il faut `video`). Si le groupe vient
+  d'être ajouté, déconnecte-toi puis reconnecte-toi. Une caméra CSI (nappe) n'est pas prise en charge.
+- **Pas de son** : `aplay -l` liste les cartes ; relance `bash linux/install.sh --reconfigure` pour choisir
+  la bonne sortie (bip de test). Si le volume ne change pas, vérifie `AUDIO_CONTROL` avec `amixer -c <carte> scontrols`.
+- **Erreur 409 / « Conflict » dans les logs** : le même bot est utilisé par un autre programme
+  (par exemple ton Mac). Crée un bot par machine.
+- **CPU trop élevé** : baisse `CAMERA_WIDTH`/`CAMERA_HEIGHT` à 640×480, puis `ANALYSIS_FPS` à 3.
+- **Détections ratées** : monte `DETECT_WIDTH` (480) ou baisse `MIN_AREA`.
+- **Logs** : `journalctl -u gotchacam -n 50`.
 
 ## Différences avec la version macOS
 
