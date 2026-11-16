@@ -43,6 +43,8 @@ from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandl
 
 load_dotenv()
 
+IS_MACOS = sys.platform == "darwin"
+
 SHARED_DIR = Path(__file__).parent / "shared"
 DEFAULTS = json.loads((SHARED_DIR / "defaults.json").read_text())
 LANGUAGE = os.getenv("LANGUAGE", DEFAULTS.get("language", "en")).strip().lower()
@@ -64,6 +66,11 @@ CAMERA_INDEX = int(os.getenv("CAMERA_INDEX", DEFAULTS["camera"]["index"]))
 CAMERA_WIDTH = int(os.getenv("CAMERA_WIDTH", "0") or 0)
 CAMERA_HEIGHT = int(os.getenv("CAMERA_HEIGHT", "0") or 0)
 CAMERA_FOURCC = os.getenv("CAMERA_FOURCC", "MJPG").strip()
+# Allègement CPU : l'analyse se fait sur une image réduite à DETECT_WIDTH pixels de large
+# (0 = taille native) et au plus ANALYSIS_FPS fois par seconde (0 = pause fixe de 50 ms).
+# Défauts : macOS inchangé ; Linux/Raspberry Pi 320 px et 5 analyses/s.
+DETECT_WIDTH = int(os.getenv("DETECT_WIDTH") or ("0" if IS_MACOS else "320"))
+ANALYSIS_FPS = float(os.getenv("ANALYSIS_FPS") or ("0" if IS_MACOS else "5"))
 # Linux uniquement : sortie audio ALSA (ex: "default", "plughw:1,0") et contrôle de volume amixer
 AUDIO_DEVICE = os.getenv("AUDIO_DEVICE", "default").strip() or "default"
 AUDIO_CARD = os.getenv("AUDIO_CARD", "").strip()
@@ -78,7 +85,6 @@ SITE_NAME = os.getenv("SITE_NAME", "").strip()
 SITE_PREFIX = STRINGS["site_prefix"].format(site=SITE_NAME) if SITE_NAME else ""
 ALARM_TEXT = os.getenv("ALARM_TEXT", STRINGS["alarm"]["default_text"])
 ALARM_SOUND = os.getenv("ALARM_SOUND", "").strip()
-IS_MACOS = sys.platform == "darwin"
 # macOS : voix `say` (Daniel, Thomas…). Linux : code langue espeak-ng (en, fr…).
 _default_voice = (
     DEFAULTS["alarm"].get("voicesByLanguage", {}).get(LANGUAGE, "Daniel") if IS_MACOS else LANGUAGE
@@ -148,12 +154,26 @@ HELP_TEXT = (
 )
 
 
-def detect_motion(prev_gray, gray) -> tuple[bool, int]:
+def prepare_gray(frame) -> tuple[np.ndarray, float]:
+    """Image de travail pour la détection : réduite à DETECT_WIDTH, en gris, floutée.
+    Retourne (image, échelle) ; l'échelle sert à ramener les aires en pixels de l'image native."""
+    scale = 1.0
+    width = frame.shape[1]
+    if 0 < DETECT_WIDTH < width:
+        scale = DETECT_WIDTH / width
+        frame = cv2.resize(frame, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    kernel = max(3, round(21 * scale) | 1)  # noyau impair, proportionnel à la réduction
+    return cv2.GaussianBlur(gray, (kernel, kernel), 0), scale
+
+
+def detect_motion(prev_gray, gray, scale: float = 1.0) -> tuple[bool, int]:
+    """MIN_AREA et l'aire retournée sont exprimés en pixels de l'image native, quelle que soit la réduction."""
     delta = cv2.absdiff(prev_gray, gray)
     thresh = cv2.threshold(delta, MOTION_THRESHOLD, 255, cv2.THRESH_BINARY)[1]
     thresh = cv2.dilate(thresh, None, iterations=2)
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    largest = max((cv2.contourArea(c) for c in contours), default=0)
+    largest = max((cv2.contourArea(c) for c in contours), default=0) / (scale * scale)
     return largest >= MIN_AREA, int(largest)
 
 
@@ -667,6 +687,7 @@ def _open_camera() -> cv2.VideoCapture:
         return cv2.VideoCapture(CAMERA_INDEX)
     cap = cv2.VideoCapture(CAMERA_INDEX, cv2.CAP_V4L2)
     if cap.isOpened():
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # lecture plus lente que la caméra : pas d'images périmées
         if len(CAMERA_FOURCC) == 4:
             cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*CAMERA_FOURCC))
         if CAMERA_WIDTH and CAMERA_HEIGHT:
@@ -713,15 +734,15 @@ async def camera_loop(bot) -> None:
                 continue
 
             latest_frame = frame
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            gray = cv2.GaussianBlur(gray, (21, 21), 0)
+            loop_start = time.monotonic()
+            gray, scale = prepare_gray(frame)
 
             if prev_gray is None:
                 prev_gray = gray
                 await asyncio.sleep(0.05)
                 continue
 
-            motion, area = detect_motion(prev_gray, gray)
+            motion, area = detect_motion(prev_gray, gray, scale)
             now = time.time()
             if motion and now - last_alert >= COOLDOWN_SECONDS:
                 last_alert = now
@@ -729,7 +750,10 @@ async def camera_loop(bot) -> None:
                 asyncio.create_task(capture_burst(bot, area))
 
             prev_gray = gray
-            await asyncio.sleep(0.05)
+            if ANALYSIS_FPS > 0:
+                await asyncio.sleep(max(0.0, 1 / ANALYSIS_FPS - (time.monotonic() - loop_start)))
+            else:
+                await asyncio.sleep(0.05)
     finally:
         if cap is not None:
             cap.release()
