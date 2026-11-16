@@ -1,0 +1,6 @@
+# Dépendances Python pour Linux / Raspberry Pi (OS 64 bits).
+# opencv-python-headless : pas besoin des bibliothèques graphiques (libGL, X11).
+opencv-python-headless>=4.10
+python-telegram-bot>=21.0
+python-dotenv>=1.0
+aiohttp>=3.9
