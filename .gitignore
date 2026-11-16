@@ -23,3 +23,7 @@ shared/e2e-tests/
 
 # Pytest cache
 .pytest_cache/
+
+# Installeur Linux
+camera_test.jpg
+.env.bak

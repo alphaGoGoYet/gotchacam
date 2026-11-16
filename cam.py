@@ -1,4 +1,4 @@
-"""Motion detection on Mac webcam → snapshot pushed to Telegram.
+"""Motion detection on a webcam (macOS or Linux/Raspberry Pi) → snapshot pushed to Telegram.
 
 Telegram commands (réservées au CHAT_ID configuré) :
   /pause       — mettre la détection en pause
@@ -25,7 +25,10 @@ import asyncio
 import json
 import logging
 import os
+import re
 import signal
+import sys
+import tempfile
 import time
 from datetime import datetime
 from pathlib import Path
@@ -57,6 +60,14 @@ if _raw_ids:
 else:
     CHAT_IDS = {int(os.environ["TELEGRAM_CHAT_ID"])}
 CAMERA_INDEX = int(os.getenv("CAMERA_INDEX", DEFAULTS["camera"]["index"]))
+# Linux uniquement (0 / vide = valeur par défaut de la caméra)
+CAMERA_WIDTH = int(os.getenv("CAMERA_WIDTH", "0") or 0)
+CAMERA_HEIGHT = int(os.getenv("CAMERA_HEIGHT", "0") or 0)
+CAMERA_FOURCC = os.getenv("CAMERA_FOURCC", "MJPG").strip()
+# Linux uniquement : sortie audio ALSA (ex: "default", "plughw:1,0") et contrôle de volume amixer
+AUDIO_DEVICE = os.getenv("AUDIO_DEVICE", "default").strip() or "default"
+AUDIO_CARD = os.getenv("AUDIO_CARD", "").strip()
+AUDIO_CONTROL = os.getenv("AUDIO_CONTROL", "Master").strip() or "Master"
 MOTION_THRESHOLD = int(os.getenv("MOTION_THRESHOLD", DEFAULTS["motion"]["threshold"]))
 MIN_AREA = int(os.getenv("MIN_AREA", DEFAULTS["motion"]["minArea"]))
 COOLDOWN_SECONDS = float(os.getenv("COOLDOWN_SECONDS", DEFAULTS["motion"]["cooldownSeconds"]))
@@ -67,7 +78,11 @@ SITE_NAME = os.getenv("SITE_NAME", "").strip()
 SITE_PREFIX = STRINGS["site_prefix"].format(site=SITE_NAME) if SITE_NAME else ""
 ALARM_TEXT = os.getenv("ALARM_TEXT", STRINGS["alarm"]["default_text"])
 ALARM_SOUND = os.getenv("ALARM_SOUND", "").strip()
-_default_voice = DEFAULTS["alarm"].get("voicesByLanguage", {}).get(LANGUAGE, "Daniel")
+IS_MACOS = sys.platform == "darwin"
+# macOS : voix `say` (Daniel, Thomas…). Linux : code langue espeak-ng (en, fr…).
+_default_voice = (
+    DEFAULTS["alarm"].get("voicesByLanguage", {}).get(LANGUAGE, "Daniel") if IS_MACOS else LANGUAGE
+)
 ALARM_VOICE = os.getenv("ALARM_VOICE", _default_voice).strip()
 ALARM_PITCH = float(os.getenv("ALARM_PITCH", DEFAULTS["alarm"]["pitch"]))
 ALARM_RECORD_MAX_SECONDS = int(os.getenv("ALARM_RECORD_MAX_SECONDS", DEFAULTS["alarm"]["recordMaxSeconds"]))
@@ -111,6 +126,8 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(message)s",
 )
 log = logging.getLogger("cam")
+# httpx logge chaque requête Telegram avec le token du bot dans l'URL : on le coupe.
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 paused = False
 stop_event: asyncio.Event | None = None
@@ -274,7 +291,7 @@ async def _save_as_alarm(src: Path, voice_duration: int, update: Update) -> None
 
 
 async def _play_voice_once(src: Path, update: Update) -> None:
-    """Convertit l'OGG/Opus en WAV via ffmpeg puis joue le WAV via afplay (built-in macOS)."""
+    """Convertit l'OGG/Opus en WAV via ffmpeg puis joue le WAV (afplay sur macOS, ffmpeg→ALSA sur Linux)."""
     wav = src.with_suffix(".wav")
     try:
         conv = await asyncio.create_subprocess_exec(
@@ -296,7 +313,7 @@ async def _play_voice_once(src: Path, update: Update) -> None:
 
     try:
         play = await asyncio.create_subprocess_exec(
-            "afplay", str(wav),
+            *_player_cmd(wav),
             stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.DEVNULL,
         )
@@ -443,25 +460,51 @@ async def cmd_help(update: Update, _ctx: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(HELP_TEXT)
 
 
+def _player_cmd(path: Path) -> list[str]:
+    """Commande de lecture d'un fichier audio : afplay sur macOS, ffmpeg → ALSA sur Linux
+    (ffmpeg est déjà requis, lit le m4a/ogg/wav et permet de choisir la sortie via AUDIO_DEVICE)."""
+    if IS_MACOS:
+        return ["afplay", str(path)]
+    return [FFMPEG_BIN, "-nostdin", "-loglevel", "quiet", "-i", str(path), "-f", "alsa", AUDIO_DEVICE]
+
+
+def _amixer_args(*args: str) -> list[str]:
+    return ["amixer", *(["-c", AUDIO_CARD] if AUDIO_CARD else []), *args]
+
+
 async def _get_output_volume() -> int | None:
     """Retourne le volume actuel (0-100) ou None si la lecture échoue."""
+    cmd = (
+        ["osascript", "-e", "output volume of (get volume settings)"]
+        if IS_MACOS
+        else _amixer_args("sget", AUDIO_CONTROL)
+    )
     try:
         proc = await asyncio.create_subprocess_exec(
-            "osascript", "-e", "output volume of (get volume settings)",
+            *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.DEVNULL,
         )
         out, _ = await proc.communicate()
-        return int(out.decode().strip())
+        text = out.decode().strip()
+        if IS_MACOS:
+            return int(text)
+        m = re.search(r"\[(\d+)%\]", text)
+        return int(m.group(1)) if m else None
     except (FileNotFoundError, ValueError):
         return None
 
 
 async def _set_output_volume(level: int) -> None:
     level = max(0, min(100, int(level)))
+    cmd = (
+        ["osascript", "-e", f"set volume output volume {level}"]
+        if IS_MACOS
+        else _amixer_args("-q", "sset", AUDIO_CONTROL, f"{level}%")
+    )
     try:
         proc = await asyncio.create_subprocess_exec(
-            "osascript", "-e", f"set volume output volume {level}",
+            *cmd,
             stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.DEVNULL,
         )
@@ -479,8 +522,25 @@ async def _alarm_loop(bot) -> None:
     """Joue le fichier d'alarme en boucle (ou TTS si pas de fichier) tant que alarm_active est True."""
     global alarm_proc
     alarm_path = _current_alarm_path()
-    use_file = alarm_path.exists()
-    cmd = ["afplay", str(alarm_path)] if use_file else ["say", "-v", ALARM_VOICE, ALARM_TEXT]
+    if alarm_path.exists():
+        cmd = _player_cmd(alarm_path)
+    elif IS_MACOS:
+        cmd = ["say", "-v", ALARM_VOICE, ALARM_TEXT]
+    else:
+        # Pas de fichier d'alarme : synthèse espeak-ng une fois, puis lecture en boucle du WAV.
+        tts_wav = Path(tempfile.gettempdir()) / "cam_alarm_tts.wav"
+        try:
+            synth = await asyncio.create_subprocess_exec(
+                "espeak-ng", "-v", ALARM_VOICE, "-w", str(tts_wav), ALARM_TEXT,
+                stdout=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.DEVNULL,
+            )
+            await synth.wait()
+        except FileNotFoundError as e:
+            log.error("alarm command missing: %s", e)
+            await _broadcast(bot, STRINGS["alarm"]["executable_missing"].format(error=e))
+            return
+        cmd = _player_cmd(tts_wav)
 
     while alarm_active:
         try:
@@ -600,6 +660,21 @@ async def capture_burst(bot, area: int) -> None:
     log.info("burst sent: %d photos to %d chat(s)", len(paths), len(CHAT_IDS))
 
 
+def _open_camera() -> cv2.VideoCapture:
+    """Ouvre la caméra. Linux : backend V4L2 explicite, MJPG et résolution optionnels
+    (le YUYV par défaut des webcams USB plafonne à quelques images/s en 720p)."""
+    if IS_MACOS:
+        return cv2.VideoCapture(CAMERA_INDEX)
+    cap = cv2.VideoCapture(CAMERA_INDEX, cv2.CAP_V4L2)
+    if cap.isOpened():
+        if len(CAMERA_FOURCC) == 4:
+            cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*CAMERA_FOURCC))
+        if CAMERA_WIDTH and CAMERA_HEIGHT:
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_WIDTH)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
+    return cap
+
+
 async def camera_loop(bot) -> None:
     """Boucle principale. Le cycle de vie de la caméra est lié au flag `paused` :
     pendant la pause la caméra est libérée (LED éteinte, pas de capture) et
@@ -622,7 +697,7 @@ async def camera_loop(bot) -> None:
                 continue
 
             if cap is None:
-                cap = cv2.VideoCapture(CAMERA_INDEX)
+                cap = _open_camera()
                 if not cap.isOpened():
                     log.error("could not open camera index %d, retry in 2s", CAMERA_INDEX)
                     cap = None

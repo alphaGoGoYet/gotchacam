@@ -133,6 +133,8 @@ bash install_autostart.sh
 
 See [AUTOSTART.md](AUTOSTART.md) for details (logs, stopping, etc.).
 
+**Raspberry Pi / Linux:** run `bash linux/install.sh` instead — it installs the dependencies, asks for your Telegram token, camera and speaker, and sets up a systemd service. See [linux/README.md](linux/README.md).
+
 ## Configuration
 
 All variables are documented in [.env.example](.env.example). The most useful ones:
